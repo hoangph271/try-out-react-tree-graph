@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
 import ReactDOM from 'react-dom'
 import Tree from 'react-tree-graph'
 import 'react-tree-graph/dist/style.css'
@@ -6,7 +6,8 @@ import 'react-tree-graph/dist/style.css'
 import './styles.css'
 import rootNode from './data'
 
-const cloneWithDepth = (object, depth = 5) => {
+const DEFAULT_DEPTH = 9
+const cloneWithDepth = (object, depth = DEFAULT_DEPTH) => {
   if (depth === -1) return undefined
   if (typeof object !== 'object') return object
 
@@ -48,9 +49,56 @@ const findNode = (key, node = rootNode, parentPath = []) => {
     }
   }
 }
+
+const useWindowInnerSize = () => {
+  const [innerWidth, setInnerWidth] = useState(window.innerWidth)
+  const [innerHeight, setInnerHeight] = useState(window.innerHeight)
+  const hanldeResize = useCallback(() => {
+    setInnerWidth(window.innerWidth)
+    setInnerHeight(window.innerHeight)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('resize', hanldeResize)
+
+    return () => window.removeEventListener('resize', hanldeResize)
+  }, [hanldeResize])
+
+
+  return {
+    innerWidth,
+    innerHeight,
+  }
+}
+
 const App = () => {
   const [data, setData] = useState(cloneWithDepth(rootNode))
   const [path, setPath] = useState([rootNode.name])
+  const [canvasWidth, setCanvasWidth] = useState(0)
+  const [canvasHeight, setCanvasHeight] = useState(0)
+  const { innerWidth, innerHeight } = useWindowInnerSize()
+  const canvasWrapper = useRef(null)
+  const setCanvasSize = useCallback(() => {
+    const { clientWidth, clientHeight } = canvasWrapper.current
+
+    setCanvasWidth(clientWidth)
+    setCanvasHeight(clientHeight)
+  }, [])
+
+  useEffect(setCanvasSize, [setCanvasSize])
+
+  useLayoutEffect(() => {
+    setCanvasWidth(0)
+    setCanvasHeight(0)
+  }, [innerWidth, innerHeight])
+
+  useEffect(() => () => {
+    let isMounted = true
+
+    requestAnimationFrame(() => isMounted && setCanvasSize())
+
+    return () => isMounted = false
+  }, [innerWidth, innerHeight, setCanvasSize])
 
   const changeNode = ({ node, path }) => {
     setPath(path)
@@ -61,9 +109,13 @@ const App = () => {
   }
 
   return (
-    <React.Fragment>
-      <div style={{ display: 'flex' }}>
-        <div style={{ flexGrow: 1 }}>
+    <div style={{
+      flexGrow: 1,
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      <div>
+        <div>
           {path.map((path) => (
             <button
               style={{
@@ -84,18 +136,19 @@ const App = () => {
           ))}
         </div>
       </div>
-      <div style={{ position: 'relative' }}>
+      <div style={{ flexGrow: 1 }} ref={canvasWrapper}>
         <Tree
           animated
           data={data}
-          width={400}
-          height={400}
+          width={canvasWidth}
+          height={canvasHeight}
           nodeRadius={15}
+          svgProps={{ style: { backgroundColor: 'lightgray' } }}
           gProps={{ className: 'node', onClick: handleClick }}
           margins={{ top: 20, bottom: 10, left: 20, right: 200 }}
         />
       </div>
-    </React.Fragment>
+    </div>
   )
 }
 

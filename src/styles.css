@@ -1,3 +1,9 @@
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+  align-items: stretch;
+}
 .node circle {
   fill: rgb(247, 106, 214);
   stroke: rgb(184, 37, 81);
@@ -9,6 +15,11 @@
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   background-color: black;
   fill: black;
+}
+
+#root {
+  display: flex;
+  flex-grow: 1;
 }
 
 .node {
